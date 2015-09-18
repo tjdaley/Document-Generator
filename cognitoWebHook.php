@@ -1,10 +1,12 @@
 <?php
 include_once 'webHookApi.php';
+include_once 'configuration.php';
 
-$dbhost    = 'localhost';
-$dbusername = 'root';
-$dbpassword = 'jdrdb&&101';
-$dbname     = 'joomla';
+$config = new Configuration();
+$dbhost     = $config->DBHOST;
+$dbusername = $config->DBUSERNAME;
+$dbpassword = $config->DBPASSWORD;
+$dbname     = $config->DBNAME;
 
 $json = file_get_contents('php://input');
 
