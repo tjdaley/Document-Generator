@@ -50,7 +50,8 @@ function sendDocuments($document)
 	//$mailer->AltBody = 'Your completed document is attached.';
 	$mailer->Body = '<h1>JDReview.com</h1><p>Your completed document is attached.</p>';
 	$mailer->IsHTML();
-	$mailer->AddAddress('tjd@powerdaley.com','Tom Daley');
+	$mailer->AddAddress($document->getQueuedRequest()['emailTo']);
+	//$mailer->AddAddress('tjd@powerdaley.com','Tom Daley');
 	$mailer->AddAttachment($config->GENERATEDIR.'/'.$filename);
 	return $mailer->Send();
 }
@@ -169,7 +170,7 @@ function getQueuedRequest()
 		return false;
 	}
 	
-	$document->setRequest($request);
+	$document->setQueuedRequest($request);
 	$document->setQueuedRequestId($request['id']);
 	
 	return $document;
@@ -228,7 +229,7 @@ class Document
 	
 	function setQueuedRequestId($id) { $this->items['QueuedRequestId'] = $id; }
 	function getQueuedRequestId() { return $this->items['QueuedRequestId']; }
-	function setRequest($req) { $this->items['Request'] = $req; }
+	function setQueuedRequest($req) { $this->items['Request'] = $req; }
 	function getQueuedRequest() { return $this->items['Request']; }
 	function setContents($v) { $this->items['Contents'] = $v; }
 	function getContents() { return $this->items['Contents']; }
