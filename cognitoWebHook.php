@@ -7,6 +7,7 @@ $dbhost     = $config->DBHOST;
 $dbusername = $config->DBUSERNAME;
 $dbpassword = $config->DBPASSWORD;
 $dbname     = $config->DBNAME;
+date_default_timezone_set($config->TIMEZONE);
 
 $json = file_get_contents('php://input');
 
@@ -81,4 +82,11 @@ foreach ($dbSections as $key=>$value)
     JDRWH::saveSectionSubmission($mysqli, $oSection);
   }
 }
+
+//Now queue the document building request
+$now = date('Y-m-d H:i:s');
+$sql = 'INSERT INTO wh_generation_queue (`dateSubmitted`, `formSubmissionId`, `emailTo`, `queueName`) '.
+       "VALUES ('$now', $submissionId,'tjd@powerdaley.com','PENDING')";
+if (!$mysqli->query($sql))
+	error_log("Error queueing document request ($sql) ".$mysqli->error);
 ?>
