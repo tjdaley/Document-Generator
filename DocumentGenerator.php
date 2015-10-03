@@ -1,5 +1,5 @@
 <?php
-include_once '/var/www/tbs/tbs_class.php';
+include 'smarty-3.1.27/libs/Smarty.class.php';
 include_once 'configuration.php';
 include_once 'mailer.php';
 
@@ -8,7 +8,7 @@ $mailer = new Mailer($config);
 date_default_timezone_set($config->TIMEZONE);
 $mysqli = dbConnect();
 
-logError('Starting');
+logError('Starting (smarty)');
 $requestCount = 0;
 
 /*
@@ -71,11 +71,9 @@ function sendDocuments($document)
 	global $mailer;
 	$filename = $document->getFilename();
 	$mailer->Subject = 'JDReview.com - Completed Document';
-	//$mailer->AltBody = 'Your completed document is attached.';
 	$mailer->Body = '<h1>JDReview.com</h1><p>Your completed document is attached.</p>';
 	$mailer->IsHTML();
 	$mailer->AddAddress($document->getQueuedRequest()['emailTo']);
-	//$mailer->AddAddress('tjd@powerdaley.com','Tom Daley');
 	$mailer->AddAttachment($config->GENERATEDIR.'/'.$filename);
 	return $mailer->Send();
 }
@@ -169,28 +167,21 @@ function generateDocuments($document)
 	
 	//$json will contain each data section that has just arrived from the user.
 	//It may contain more or fewer sections than $sections.
-	$json       = json_decode($submission['rawBody']);
+	$json       = json_decode($submission['rawBody'], true);
 
-	//TBS library is what we use to merge the templates with user data.
-	$tbs = new clsTinyButStrong();
+	//Smarty is what we use to merge the templates with user data.
+	$smarty = new Smarty;
+	$smarty->left_delimiter = '[['; 
+	$smarty->right_delimiter = ']]'; 
 
-	//Load the template file.
-	$tbs->LoadTemplate($config->FORMSDIR.'/'.$form['formFile']);
+	//Construct the template file name
+	$templateFile = $config->FORMSDIR.'/'.$form['formFile'];
 
 	//Loop through each section provided by the form
 	//submission. 
 	foreach($json as $key=>$value)
 	{
-		$mergeAs = 'FIELD';
-		if (array_key_exists($key, $sections))
-		{
-			$mergeAs = $sections[$key]['mergeAs'];
-		}
-		
-		if ($mergeAs === 'FIELD')
-			$tbs->MergeField($key, $value);
-		else
-			$tbs->MergeBlock($key, $value);
+		$smarty->assign($key, $value);
 		
 		//Indicate that we have merged this required data section.
 		unset($sections[$key]);
@@ -203,19 +194,16 @@ function generateDocuments($document)
 	{
 		if (($data = getUserFormSectionData($userId, $key)))
 		{
-			if ($value['mergeAs'] === 'FIELD')
-				$tbs->MergeField($key, $data);
-			else
-				$tbs->MergeBlock($key, $data);
+			$smarty->assign($key, $data);
 		}
 	}
 	
-	//Finalize the merge operation, but don't echo it to stdout.
-	$tbs->Show(TBS_NOTHING);
+	//Finalize the merge operation.
+	$output = $smarty->fetch($templateFile);
 
 	$document->setSubmission($submission);
 	$document->setForm($form);
-	$document->setContents($tbs->Source);
+	$document->setContents($output);
 	
 	return true;
 }
@@ -277,7 +265,7 @@ function getUserFormSectionData($userId, $sectionName)
 	
 	try
 	{
-		$sectionData = json_decode($row['rawBody']);
+		$sectionData = json_decode($row['rawBody'], true);
 	}
 	catch(Exception $e)
 	{
